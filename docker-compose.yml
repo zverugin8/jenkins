@@ -1,0 +1,53 @@
+version: "3"
+
+services:
+  jenkins-docker:
+    image: docker:dind
+    container_name: docker
+    restart: unless-stopped
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    privileged: true
+    networks:
+      - jenkins-network
+    volumes:
+      - jenkins-docker-certs:/certs/client
+      - jenkins-data:/var/jenkins_home
+    ports:
+      - "2376:2376"
+
+  jenkins-blueocean:
+    image: siarheisaroka/myjenkins-blueocean:2.387.1-1
+    container_name: jenkins
+    restart: unless-stopped
+    environment:
+      - DOCKER_HOST=tcp://docker:2376
+      - DOCKER_CERT_PATH=/certs/client
+      - DOCKER_TLS_VERIFY=0
+    networks:
+      - jenkins-network
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+
+  nginx:
+    image: nginx
+    container_name: nginx
+    restart: unless-stopped
+    networks:
+      - jenkins-network
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "80:80"
+
+volumes:
+  jenkins-docker-certs:
+  jenkins-data:
+
+
+networks:
+  jenkins-network:
